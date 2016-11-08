@@ -1,7 +1,7 @@
 [default]
-server = 172.16.100.67
+server = 192.168.1.7
 server_port = 7070
-local = 0.0.0.0
+local = 127.0.0.1
 local_port = 1080
 certfile = cacert.pem
 keyfile = privkey.pem

@@ -1,1 +1,4 @@
 *.pyc
+config.cfg
+privkey.pem
+cacert.pem
