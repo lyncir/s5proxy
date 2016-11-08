@@ -108,12 +108,12 @@ class Socks5Server(SocketServer.StreamRequestHandler):
                 remote = socket.create_connection((addr, port[0]))
                 logging.info('connecting %s:%d' % (addr, port[0]))
             except socket.error, e:
-                logging.warn(e)
+                logging.warn("%s: %s" % (addr, e))
                 return
             # receive request, send to server
             send2server(sock, remote)
         except socket.error, e:
-            logging.warn(e)
+            logging.warn("socket error: %s" % e)
 
 
 def main():
