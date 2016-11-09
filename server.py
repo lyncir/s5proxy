@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 import ssl
+import time
 import select
 import struct
 import socket
@@ -74,6 +75,12 @@ class Socks5Server(SocketServer.StreamRequestHandler):
             cmd = ord(data[1])
             if cmd != 1:
                 logging.warn('cmd != 1')
+                # send http headers
+                send_all(sock, b"HTTP/1.1 200 OK\r\n")
+                send_all(sock, b"Connection: close\r\n")
+                send_all(sock, b"Content-Type: text/plain\r\n")
+                resp = "Date: " + time.ctime() + "\r\n"
+                send_all(sock, resp.encode('latin-1'))
                 return
 
             atyp = ord(data[3])
@@ -101,12 +108,12 @@ class Socks5Server(SocketServer.StreamRequestHandler):
                 remote = socket.create_connection((addr, port[0]))
                 logging.info('connecting %s:%d' % (addr, port[0]))
             except socket.error, e:
-                logging.warn(e)
+                logging.warn("%s: %s" % (addr, e))
                 return
             # receive request, send to server
             send2server(sock, remote)
         except socket.error, e:
-            logging.warn(e)
+            logging.warn("socket error: %s" % e)
 
 
 def main():

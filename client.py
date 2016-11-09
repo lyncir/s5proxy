@@ -110,8 +110,7 @@ class Socks5Client(SocketServer.StreamRequestHandler):
             # send and receive. TODO: encrypt
             send2server(sock, remote)
         except socket.error, e:
-            print 222
-            logging.warn(e)
+            logging.warn("socket error: %s" % e)
 
 
 def main():
