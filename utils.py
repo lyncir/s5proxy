@@ -1,22 +1,22 @@
 # -*- coding: utf8 -*-
+import yaml
 
-import ConfigParser
+
+class Config(object):
+
+    def from_ymlfile(self, filename):
+        try:
+            with open(filename) as config_file:
+                config = yaml.load(config_file.read())
+        except IOError as e:
+            e.strerror = 'Unable to load configuration file (%s)' % e.strerror
+            raise
+        return config
 
 
-def get_config():
-    config = ConfigParser.RawConfigParser()
-    config.read('config.cfg')
-
-    cfg = {}
-    cfg['server'] = config.get('default', 'server')
-    cfg['server_port'] = config.getint('default', 'server_port')
-    cfg['local'] = config.get('default', 'local')
-    cfg['local_port'] = config.getint('default', 'local_port')
-    cfg['certfile'] = config.get('default', 'certfile')
-    cfg['keyfile'] = config.get('default', 'keyfile')
-
-    return cfg
+config = Config().from_ymlfile('config.yml')
 
 
 if __name__ == '__main__':
-    print get_config()
+    print(config)
+    print(config['default']['local'])
