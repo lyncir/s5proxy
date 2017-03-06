@@ -48,9 +48,9 @@ class ProxyServer(asyncio.Protocol):
 
     async def connect(self, hostname, port):
         loop = asyncio.get_event_loop()
-        # 连接web
+        # 连接web, only use ipv4
         transport, client = \
-            await loop.create_connection(Client, hostname, port)
+            await loop.create_connection(Client, hostname, port, family=socket.AF_INET)
         client.server_transport = self.transport
         self.client_transport = transport
 
