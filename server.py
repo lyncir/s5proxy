@@ -12,12 +12,13 @@ class Client(asyncio.Protocol):
     def connection_made(self, transport):
         self.transport = transport
         self.server_transport = None
+        self.hostname = None
 
     def data_received(self, data):
         self.server_transport.write(data)
 
     def connection_lost(self, exc):
-        logging.info('connected to {} success!'.format(self.transport.get_extra_info('peername')))
+        logging.info('connected to {} success!'.format(self.hostname))
         self.server_transport.close()
 
 
@@ -49,10 +50,13 @@ class ProxyServer(asyncio.Protocol):
     async def connect(self, hostname, port):
         loop = asyncio.get_event_loop()
         # 连接web, only use ipv4
-        transport, client = \
-            await loop.create_connection(Client, hostname, port, family=socket.AF_INET)
+        transport, client = await loop.create_connection(Client,
+                                                         hostname,
+                                                         port,
+                                                         family=socket.AF_INET)
         client.server_transport = self.transport
         self.client_transport = transport
+        client.hostname = hostname
 
         # 返回给浏览器
         hostip, port = transport.get_extra_info('sockname')
@@ -60,11 +64,12 @@ class ProxyServer(asyncio.Protocol):
         self.transport.write(
             pack('!BBBBIH', 0x05, 0x00, 0x00, 0x01, host, port))
 
+
 if __name__ == '__main__':
     # log
     logging.basicConfig(level=logging.DEBUG,
-            format='%(asctime)s %(levelname)-8s %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
+                        format='%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
 
     # config
     server = config['default']['server']

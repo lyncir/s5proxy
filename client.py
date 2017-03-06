@@ -24,7 +24,6 @@ class Server(asyncio.Protocol):
     INIT, HOST, DATA = 0, 1, 2
 
     def connection_made(self, transport):
-        logging.info('connecting from proxy application: {}'.format(transport.get_extra_info('peername')))
         # 浏览器和proxyclient的transport
         self.transport = transport
         self.state = self.INIT
@@ -73,7 +72,9 @@ class Server(asyncio.Protocol):
 
         loop = asyncio.get_event_loop()
         # 和proxyclient建立连接
-        transport, client = await loop.create_connection(ProxyClient, server, server_port)
+        transport, client = await loop.create_connection(ProxyClient,
+                                                         server,
+                                                         server_port)
         # 绑定server_transport和trasport
         client.server_transport = self.transport
         self.client_transport = transport
@@ -85,8 +86,8 @@ class Server(asyncio.Protocol):
 if __name__ == '__main__':
     # log
     logging.basicConfig(level=logging.DEBUG,
-            format='%(asctime)s %(levelname)-8s %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
+                        format='%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
 
     # config
     local = config['default']['local']
