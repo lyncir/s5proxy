@@ -3,8 +3,26 @@ import logging
 import socket
 import asyncio
 from struct import pack, unpack
-
 from utils import config
+from http.server import BaseHTTPRequestHandler
+from http.client import responses
+from io import BytesIO
+from datetime import datetime
+
+
+class HTTPRequest(BaseHTTPRequestHandler):
+    def __init__(self, request_text):
+        self.rfile = BytesIO(request_text)
+        self.raw_requestline = self.rfile.readline()
+        self.error_code = self.error_message = None
+        self.parse_request()
+
+    def send_error(self, code, message):
+        self.error_code = code
+        self.error_message = message
+
+    def send_response(self, code, message=None):
+        self.send_response_only(code, message)
 
 
 class Client(asyncio.Protocol):
@@ -36,16 +54,47 @@ class ProxyServer(asyncio.Protocol):
 
         if self.state == self.INIT:
             # 解析proxyclient传过来的第一个包
-            l = unpack('!i', data[:4])[0]
-            _, hostname, port = unpack('!i%ssH' % l, data)
+            try:
+                l = unpack('!i', data[:4])[0]
+                _, hostname, port = unpack('!i%ssH' % l, data)
 
-            # 与web站点建立连接
-            logging.info('request connect to {}:{}'.format(hostname, port))
-            asyncio.ensure_future(self.connect(hostname, port))
-            self.state = self.DATA
+                # 与web站点建立连接
+                logging.info('request connect to {}:{}'.format(hostname, port))
+                asyncio.ensure_future(self.connect(hostname, port))
+                self.state = self.DATA
+            except:
+                # 是否是http包
+                request = HTTPRequest(data)
+                if not request.error_code:
+                    response = {"code": 200,
+                                "headers": {'Content-Type': 'text/plain'},
+                                "version": 'HTTP/1.1',
+                                "body": "hello world"}
+
+                    status = '{} {} {}\r\n'.format(response['version'],
+                                                   response['code'],
+                                                   responses[response['code']])
+                    self._write_transport(status)
+
+                    if 'body' in response and 'Content-Length' not in response['headers']:
+                        response['headers']['Content-Length'] = len(response['body'])
+                    response['headers']['Date'] = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
+
+                    for (header, content) in response['headers'].items():
+                        self._write_transport('{}: {}\r\n'.format(header, content))
+
+                    self._write_transport('\r\n')
+                    if 'body' in response:
+                        self._write_transport(response['body'])
 
         elif self.state == self.DATA:
             self.client_transport.write(data)
+
+    def _write_transport(self, string):
+        if isinstance(string, str):
+            self.transport.write(string.encode('utf-8'))
+        else:
+            self.transport.write(string)
 
     async def connect(self, hostname, port):
         loop = asyncio.get_event_loop()

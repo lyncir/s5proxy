@@ -46,7 +46,7 @@ class Server(asyncio.Protocol):
 
             if atype == 3:    # domain
                 length = data[4]
-                hostname, nxt = data[5:5+length],  5+length
+                hostname, nxt = data[5:5 + length], 5 + length
             elif atype == 1:  # ipv4
                 hostname, nxt = socket.inet_ntop(socket.AF_INET, data[4:8]), 8
             elif atype == 4:  # ipv6
@@ -55,7 +55,7 @@ class Server(asyncio.Protocol):
                 logging.warn('addr_type not suport')
                 return
 
-            port = unpack('!H', data[nxt:nxt+2])[0]
+            port = unpack('!H', data[nxt:nxt + 2])[0]
 
             logging.info('request connect to {}:{}'.format(hostname, port))
             # 连接proxyserver
