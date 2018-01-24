@@ -67,7 +67,8 @@ class ProxyServer(asyncio.Protocol):
                 request = HTTPRequest(data)
                 if not request.error_code:
                     response = {"code": 200,
-                                "headers": {'Content-Type': 'text/plain'},
+                                "headers": {'Content-Type': 'text/html; charset=utf-8',
+                                            'Server': 'nginx/1.10.2'},
                                 "version": 'HTTP/1.1',
                                 "body": "hello world"}
 
@@ -86,6 +87,12 @@ class ProxyServer(asyncio.Protocol):
                     self._write_transport('\r\n')
                     if 'body' in response:
                         self._write_transport(response['body'])
+
+                    host, port = self.transport.get_extra_info('peername')
+                    if 'User-Agent' in request.headers:
+                        logging.info('http response to {}:{} by {}'.format(host, port, request.headers['User-Agent']))
+                    else:
+                        logging.info('http response to {}:{}'.format(host, port))
 
         elif self.state == self.DATA:
             self.client_transport.write(data)
