@@ -1,22 +1,26 @@
 # -*- coding: utf8 -*-
-import yaml
+import os
+import configparser
 
 
-class Config(object):
-
-    def from_ymlfile(self, filename):
-        try:
-            with open(filename) as config_file:
-                config = yaml.load(config_file.read())
-        except IOError as e:
-            e.strerror = 'Unable to load configuration file (%s)' % e.strerror
-            raise
-        return config
+_base_dir = os.path.abspath(os.path.dirname(__name__))
 
 
-config = Config().from_ymlfile('config.yml')
+def load_config(filename):
+    """
+    加载配置文件
+    """
+    config = configparser.ConfigParser()
+    config.read(os.path.join(_base_dir, filename))
+    if 'default' not in config:
+        raise IOError('Unable to load configuration file "{}"'.format(filename))
+
+    # 必选字段
+    for k in ['server', 'server_port', 'local', 'local_port']:
+        if k not in config['default']:
+            raise KeyError('Not found field: "{}"'.format(k))
+
+    return config
 
 
-if __name__ == '__main__':
-    print(config)
-    print(config['default']['local'])
+config = load_config('config.ini')

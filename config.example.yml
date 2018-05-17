@@ -1,8 +1,0 @@
----
-default:
-  server: 127.0.0.1
-  server_port: 7070
-  local: 0.0.0.0
-  local_port: 1080
-  certfile: cacert.pem
-  keyfile: privkey.pem
