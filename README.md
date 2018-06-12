@@ -39,9 +39,9 @@
 
 ### Server side
 
-1.  `cp config.cfg.example config.cfg`,
+1.  `cp config.ini.example config.ini`,
 
-	#### config.cfg
+	#### config.ini
 	
 	*	`openssl genrsa -out privkey.pem 2048`
 	*	`openssl req -new -x509 -key privkey.pem -out cacert.pem -days 1095`
@@ -67,3 +67,8 @@ Now, you can set your apps (e.g. Browser) Using socks5 proxy.
 
 IP = `127.0.0.1`
 PORT = `1080`  (if not changed in the config.cfg)
+
+
+## TODO
+
+* Use SSL encrypt the data
