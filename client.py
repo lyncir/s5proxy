@@ -80,7 +80,7 @@ class Server(asyncio.Protocol):
         self.client_transport = transport
         # 发送地址信息, 域名和端口
         self.client_transport.write(
-                pack('!i%ssH' % len(hostname), len(hostname), bytes(hostname, encoding='utf-8'), port))
+                pack('!i%ssH' % len(hostname), len(hostname), hostname, port))
 
 
 if __name__ == '__main__':
