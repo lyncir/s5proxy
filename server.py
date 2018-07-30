@@ -50,19 +50,24 @@ class ProxyServer(asyncio.Protocol):
     def connection_lost(self, exc):
         self.transport.close()
 
+    def eof_received(self):
+        # 当接收到proxy client的EOF时，转发请求给website，将会关闭整个链接
+        if hasattr(self, 'client_transport') and self.client_transport.can_write_eof():
+            self.client_transport.write_eof()
+
     def data_received(self, data):
 
         if self.state == self.INIT:
             # 解析proxyclient传过来的第一个包
             try:
-                l = unpack('!i', data[:4])[0]
-                _, hostname, port = unpack('!i%ssH' % l, data)
+                head = unpack('!i', data[:4])[0]
+                _, hostname, port = unpack('!i%ssH' % head, data)
 
                 # 与web站点建立连接
                 logging.info('request connect to {}:{}'.format(hostname, port))
                 asyncio.ensure_future(self.connect(hostname, port))
                 self.state = self.DATA
-            except:
+            except Exception:
                 # 是否是http包
                 request = HTTPRequest(data)
                 if not request.error_code:
@@ -106,10 +111,18 @@ class ProxyServer(asyncio.Protocol):
     async def connect(self, hostname, port):
         loop = asyncio.get_event_loop()
         # 连接web, only use ipv4
-        transport, client = await loop.create_connection(Client,
-                                                         hostname,
-                                                         port,
-                                                         family=socket.AF_INET)
+        try:
+            transport, client = await loop.create_connection(Client,
+                                                             hostname,
+                                                             port,
+                                                             family=socket.AF_INET)
+        # 连接失败
+        except Exception:
+            logging.error('Could not connect host: {}'.format(hostname))
+            if self.transport.can_write_eof():
+                self.transport.write_eof()
+            return False
+
         client.server_transport = self.transport
         self.client_transport = transport
         client.hostname = hostname
@@ -122,16 +135,27 @@ class ProxyServer(asyncio.Protocol):
 
 
 if __name__ == '__main__':
-    # log
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s %(levelname)-8s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
-
     # config
-    server = config['default']['server']
-    server_port = config['default']['server_port']
+    debug = config.getboolean('default', 'debug')
+    server = config.get('default', 'server')
+    server_port = config.getint('default', 'server_port')
+
+    if debug:
+        debug_level = logging.DEBUG
+    else:
+        debug_level = logging.ERROR
+
+    # log
+    logging.basicConfig(level=debug_level,
+                        format='%(threadName)10s %(asctime)s %(levelname)-8s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
+    logging.getLogger('asyncio').setLevel(debug_level)
 
     loop = asyncio.get_event_loop()
+    if debug:
+        loop.set_debug(enabled=True)
+    loop.set_debug(enabled=True)
+
     srv = loop.create_server(ProxyServer, server, server_port)
     logging.info('start server at {}:{}'.format(server, server_port))
     loop.run_until_complete(srv)

@@ -31,6 +31,11 @@ class Server(asyncio.Protocol):
     def connection_lost(self, exc):
         self.transport.close()
 
+    def eof_received(self):
+        # 当接收到客户端的EOF时，转发请求到proxy server
+        if self.client_transport.can_write_eof():
+            self.client_transport.write_eof()
+
     def data_received(self, data):
 
         if self.state == self.INIT:
@@ -67,8 +72,8 @@ class Server(asyncio.Protocol):
 
     async def connect(self, hostname, port):
         # config
-        server = config['default']['server']
-        server_port = config['default']['server_port']
+        server = config.get('default', 'server')
+        server_port = config.getint('default', 'server_port')
 
         loop = asyncio.get_event_loop()
         # 和proxyclient建立连接
@@ -80,20 +85,30 @@ class Server(asyncio.Protocol):
         self.client_transport = transport
         # 发送地址信息, 域名和端口
         self.client_transport.write(
-                pack('!i%ssH' % len(hostname), len(hostname), hostname, port))
+            pack('!i%ssH' % len(hostname), len(hostname), hostname, port))
 
 
 if __name__ == '__main__':
-    # log
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s %(levelname)-8s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
-
     # config
-    local = config['default']['local']
-    local_port = config['default']['local_port']
+    debug = config.getboolean('default', 'debug')
+    local = config.get('default', 'local')
+    local_port = config.getint('default', 'local_port')
+
+    if debug:
+        debug_level = logging.DEBUG
+    else:
+        debug_level = logging.ERROR
+
+    # log
+    logging.basicConfig(level=debug_level,
+                        format='%(threadName)10s %(asctime)s %(levelname)-8s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
+    logging.getLogger('asyncio').setLevel(debug_level)
 
     loop = asyncio.get_event_loop()
+    if debug:
+        loop.set_debug(enabled=True)
+
     srv = loop.create_server(Server, local, local_port)
     logging.info('start client at {}:{}'.format(local, local_port))
     loop.run_until_complete(srv)
