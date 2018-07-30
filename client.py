@@ -33,7 +33,7 @@ class Server(asyncio.Protocol):
 
     def eof_received(self):
         # 当接收到客户端的EOF时，转发请求到proxy server
-        if self.client_transport.can_write_eof():
+        if hasattr(self, 'client_transport') and self.client_transport.can_write_eof():
             self.client_transport.write_eof()
 
     def data_received(self, data):
