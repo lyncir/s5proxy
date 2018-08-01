@@ -77,9 +77,17 @@ class Server(asyncio.Protocol):
 
         loop = asyncio.get_event_loop()
         # 和proxyclient建立连接
-        transport, client = await loop.create_connection(ProxyClient,
-                                                         server,
-                                                         server_port)
+        try:
+            transport, client = await loop.create_connection(ProxyClient,
+                                                             server,
+                                                             server_port)
+        # 连接失败
+        except Exception:
+            logging.error('Could not connect server: {}:{}'.format(server, server_port))
+            if self.transport.can_write_eof():
+                self.transport.write_eof()
+            return False
+
         # 绑定server_transport和trasport
         client.server_transport = self.transport
         self.client_transport = transport
