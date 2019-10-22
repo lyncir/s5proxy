@@ -71,6 +71,11 @@ class Server(asyncio.Protocol):
             self.client_transport.write(data)
 
     async def connect(self, hostname, port):
+        try:
+            hostname = hostname.encode('utf-8')
+        except AttributeError:
+            pass
+
         # config
         server = config.get('default', 'server')
         server_port = config.getint('default', 'server_port')
