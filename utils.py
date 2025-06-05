@@ -3,7 +3,7 @@ import os
 import configparser
 
 
-_base_dir = os.path.abspath(os.path.dirname(__file__))
+_base_dir = os.path.abspath(os.path.dirname(__name__))
 
 
 def load_config(filename):
