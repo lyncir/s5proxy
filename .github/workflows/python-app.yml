@@ -28,6 +28,10 @@ jobs:
           python-version: '3.11' # Version range or exact version of a Python version to use, using SemVer's version range syntax
           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
 
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
       # Build python script into a single execute or app folder (macOS)
       - uses: Nuitka/Nuitka-Action@main
         with:
@@ -39,6 +43,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: exe
+          name: client
           path: build/client.exe
           include-hidden-files: true
