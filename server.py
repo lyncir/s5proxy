@@ -35,26 +35,22 @@ class EnetServer(object):
             incomingBandwidth=0,
             outgoingBandwidth=0,
         )
-        # 连接管理 {channel_id: [state, transport]}
+        # connection manager {channel_id: [state, transport]}
         self.connections = {}
 
     async def run(self):
 
         while True:
-            # enet event 阻塞函数
             event = await self.loop.run_in_executor(None, self.host.service, 0)
 
-            # 连接时调用
             if event.type == enet.EVENT_TYPE_CONNECT:
-                logging.info("proxy client [{}]: CONNECT".format(event.peer.address))
+                logging.info("[Enet Client] [{}]: CONNECT".format(event.peer.address))
 
-            # 断开时调用
             elif event.type == enet.EVENT_TYPE_DISCONNECT:
-                logging.info("proxy client [{}]: DISCONNECT".format(event.peer.address))
-                # 重置状态
+                logging.info("[Enet Client] [{}]: DISCONNECT".format(event.peer.address))
+                # reset connections
                 self.connections = {}
 
-            # 接收时调用
             elif event.type == enet.EVENT_TYPE_RECEIVE:
                 await self.data_received(event)
 
@@ -66,7 +62,7 @@ class EnetServer(object):
         data = event.packet.data
 
         if data == b"EOF":
-            # 关闭连接
+            # close transport
             if event.channelID in self.connections:
                 _, transport = self.connections.pop(event.channelID)
                 if transport:
@@ -75,18 +71,17 @@ class EnetServer(object):
                 return
 
         if self.connections[event.channelID][0] == self.INIT:
-            # 解析proxyclient传过来的第一个包
+            # parse request packet
             head = unpack('!i', data[:4])[0]
             _, hostname, port = unpack('!i%ssH' % head, data)
 
-            # 与web站点建立连接
-            logging.debug('{}: 建立TCP连接 {}:{}'.format(event.channelID, hostname, port))
+            # connect web site
+            logging.info('ChannelID [{}]: Make TCP Request {}:{}'.format(event.channelID, hostname.decode("utf-8"), port))
 
-            # 须避免阻塞
             asyncio.create_task(self.connect(hostname, port, event))
 
         elif self.connections[event.channelID][0] == self.DATA:
-            logging.debug('{}: relay数据'.format(event.channelID))
+            logging.debug('ChannelID [{}]: Relay DATA'.format(event.channelID))
             self.connections[event.channelID][1].write(data)
 
     async def connect(self, hostname, port, event):
@@ -96,8 +91,8 @@ class EnetServer(object):
                                                              port,
                                                              family=socket.AF_INET)
         except Exception:
-            logging.error('Could not connect host: {}'.format(hostname))
-            # 发送ERR
+            logging.error('ChannelID [{}]: Could Not Connect {}:{}'.format(event.channelID, hostname.decode("utf-8"), port))
+            # Send ERR
             packet = enet.Packet(b"ERR")
             event.peer.send(event.channelID, packet)
 
@@ -110,31 +105,39 @@ class EnetServer(object):
         transport.channelID = event.channelID
 
 
-        # 返回给浏览器
+        # send to proxy server
         hostip, port = transport.get_extra_info('sockname')
         host = unpack("!I", socket.inet_aton(hostip))[0]
 
         packet = enet.Packet(pack('!BBBBIH', 0x05, 0x00, 0x00, 0x01, host, port))
         event.peer.send(event.channelID, packet)
-        logging.debug('{}: 返回响应 {}:{}'.format(event.channelID, hostname, port))
+        logging.debug('ChannelID [{}]: Relay TCP'.format(event.channelID))
 
 
 async def main():
     # log
-    log_level = logging.DEBUG
-    logging.basicConfig(level=log_level,
-                        format='%(threadName)10s %(asctime)s %(levelname)-8s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
+    log_level = logging.INFO
+    debug = config.getboolean('default', 'debug')
+    if debug:
+        log_level = logging.DEBUG
+
+    logging.basicConfig(
+        level=log_level,
+        format='%(threadName)10s %(asctime)s %(levelname)-8s %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        filemode='a+',
+    )
     logging.getLogger('asyncio').setLevel(log_level)
 
+    # main event loop
     loop = asyncio.get_running_loop()
-    # 配置
+
+    # enet server
     server = config.get('default', 'server')
     server_port = config.getint('default', 'server_port')
-
     enet_server = EnetServer(loop, server, server_port)
 
-    logging.info('start server at {}:{}'.format(server, server_port))
+    logging.info('Start [Enet Server] at {}:{}'.format(server, server_port))
     await enet_server.run()
 
 
