@@ -43,14 +43,11 @@
 
 	#### config.ini
 	
-	*	`openssl genrsa -out privkey.pem 2048`
-	*	`openssl req -new -x509 -key privkey.pem -out cacert.pem -days 1095`
 	*	server.	Server ip
 	*	server_port.	Default 7070
 	*	local.	Client ip, default 127.0.0.1
 	*	local_port.	Defalut 1080
-	*	certfile. 	Default cacert.pem
-	*	keyfile.	Defalut privkey.pem
+	*	debug.	Defalut false
 
 2.	`python server.py`
 
