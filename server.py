@@ -5,7 +5,6 @@ import asyncio
 from struct import pack, unpack
 
 import enet
-import uvloop
 
 from utils import config
 
@@ -142,5 +141,4 @@ async def main():
 
 
 if __name__ == '__main__':
-    with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
-        asyncio.run(main())
+    asyncio.run(main())
