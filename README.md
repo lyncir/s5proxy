@@ -10,7 +10,7 @@
 +------------+            +--------------+        #
                                                   #
                                                   #
-                                                  # encrypted data(ssl)
+                                                  # UDP
                                                   #
                                                   #
 +-------------+            +--------------+       #
@@ -20,17 +20,13 @@
 
 1.  `proxy client` is running at your local computer.
 
-    It receive your app (like a browser) request, encrypt the data,
-    send to `proxy server`
+    It receive your app (like a browser) request, send to `proxy server`
 
-2.  `proxy server` receive the request from `proxy client`,
-    decrypt it, and sent to the target host.
+2.  `proxy server` receive the request from `proxy client`, and sent to the target host.
 
-3.  `proxy server` got the response from target host, then encrypt response,
-    send back to `proxy client`.
+3.  `proxy server` got the response from target host, send back to `proxy client`.
 
-4.  `proxy client` decrypt response received from `proxy server`,
-    and send to local app.
+4.  `proxy client` decrypt response received from `proxy server`, and send to local app.
 
 5.  the circle done.
 
@@ -68,4 +64,4 @@ PORT = `1080`  (if not changed in the config.cfg)
 
 ## TODO
 
-* Use SSL encrypt the data
+* encrypt the data
